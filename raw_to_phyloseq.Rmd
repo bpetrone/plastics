@@ -1,6 +1,8 @@
 ---
 title: "Raw reads to phyloseq object"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup}
