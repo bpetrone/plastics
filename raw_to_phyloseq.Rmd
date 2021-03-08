@@ -1,0 +1,120 @@
+---
+title: "Raw reads to phyloseq object"
+output: html_notebook
+---
+
+```{r setup}
+library(Biostrings) # for reverse complementing barcodes
+library(dada2)
+library(fs) # For dir_create, dir_delete, dir_exists
+library(phyloseq)
+library(tidyverse)
+```
+
+## Setup
+
+```{r}
+# Set variables for R
+# Directories
+data.dir <- '/data/project_data/argonne_data' # Data
+scratch.dir <- '/home/guest/scratch/plastics' # Scratch
+demux.dir <- file.path(scratch.dir, 'demux') # Demultiplexed files
+# Remove old demultiplexed files before starting again
+if (dir_exists(demux.dir)) {dir_delete(demux.dir)}
+dir_create(demux.dir)
+# Make fresh demux directory
+if (!dir.exists(demux.dir)) {dir.create(demux.dir)} 
+group.dir <- '/sharedspace/PlasticPeople' # Group
+
+# Files
+map.file <- file.path(data.dir, "200114_McCumber_16SFW_AS_200110_corrected_final.txt")
+rc.barcode.table <- file.path(scratch.dir, "fastq_multx_input_rc.txt")
+```
+
+```{r}
+# Set variables for bash
+# Directories
+Sys.setenv(DATA_DIR = data.dir)
+Sys.setenv(SCRATCH_DIR = scratch.dir)
+Sys.setenv(DEMUX_DIR = demux.dir)
+Sys.setenv(MAP_FILE = file.path(data.dir, "200114_McCumber_16SFW_AS_200110_corrected_final.txt"))
+
+# Files for demultiplexing
+# Make pointer to text file to hold subset of mapping file for fastq-multx
+Sys.setenv(BARCODE_TABLE = file.path(scratch.dir, "fastq_multx_input.txt"))
+Sys.setenv(RC_BARCODE_TABLE = file.path(scratch.dir, "fastq_multx_input_rc.txt"))
+Sys.setenv(R1_FASTQ = file.path(data.dir, "Undetermined_S0_L001_R1_001.fastq.gz"))
+Sys.setenv(R2_FASTQ = file.path(data.dir, "Undetermined_S0_L001_R2_001.fastq.gz"))
+Sys.setenv(BARCODE_FASTQ = file.path(data.dir, "Undetermined_S0_L001_I1_001.fastq.gz"))
+```
+
+```{bash}
+# Check data integrity
+cd $DATA_DIR
+md5sum -c md5_checksum_compressed_fastqs.txt
+```
+## Demultiplex
+
+```{bash}
+# Check structure of map file
+head $MAP_FILE
+```
+### Forward barcodes
+```{bash}
+# Cut first two columns (sample ID and barcode) and place in barcode table to past to fastq-multx
+set -u
+cut --fields 1,2 $MAP_FILE > $BARCODE_TABLE
+
+# Check to make sure looks as expected
+head $BARCODE_TABLE
+```
+
+```{bash}
+# Run fastq-multx
+set -u
+fastq-multx -m 3 -d 2 -x -B $BARCODE_TABLE \
+  $BARCODE_FASTQ \
+  $R1_FASTQ \
+  $R2_FASTQ \
+  -o $DEMUX_DIR/%_I1.fastq.gz \
+  -o $DEMUX_DIR/%.forward.fastq.gz \
+  -o $DEMUX_DIR/%.reverse.fastq.gz
+```
+11,712,260 total reads
+2,271,549 unmatched reads
+129,505 skipped because of edit distance > 2. 
+
+### Reverse-complemented barcodes
+
+```{r}
+# Remove output from the previous demultiplexing step
+if (dir_exists(demux.dir)) {dir_delete(demux.dir)}
+dir_create(demux.dir)
+```
+
+```{r}
+# Reverse-complement the provided barcodes, save them in fastq-multx-compatible format
+read_tsv(map.file) %>% 
+  select(Sample = "#SampleID", BarcodeSequence) %>%          
+  deframe %>% # Convert to named vector (expected input for DNAStringSet constructor)
+  DNAStringSet %>% # Convert to DNAStringSet
+  reverseComplement %>%   
+  as.data.frame %>% 
+  rownames_to_column %>% 
+  write_delim(rc.barcode.table, delim="\t", col_names=FALSE)
+```
+
+```{bash}
+set -u
+fastq-multx -m 3 -d 2 -x -B $RC_BARCODE_TABLE \
+  $BARCODE_FASTQ \
+  $R1_FASTQ \
+  $R2_FASTQ \
+  -o $DEMUX_DIR/%_I1.fastq.gz \
+  -o $DEMUX_DIR/%.forward.fastq.gz \
+  -o $DEMUX_DIR/%.reverse.fastq.gz
+```
+
+Total reads: 11,712,260
+Unmatched: 10,749,151
+Skipped because edit distance < 2: 256,285
