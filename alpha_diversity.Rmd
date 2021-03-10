@@ -43,3 +43,12 @@ weekone.ps <- plastics.ps %>%
      subset_samples(Week == 1)
 print(weekone.ps)
 ```
+
+```{r}
+plot_richness(weekone.ps, x = "Condition",
+              measures = c("Observed", "Shannon"), color = "Condition") +
+     geom_boxplot() +
+     geom_point() +
+     facet_grid(~Location) +
+     theme_bw()
+```
