@@ -49,7 +49,8 @@ plot_richness(weekone.ps, x = "Condition",
               measures = c("Observed"), color = "Condition") +
      geom_point() +
      facet_grid(~Location) +
-     theme_bw()
+     theme_bw() +
+     labs(title = "Week 1 Observed ASVs")
 ```
 
 ```{r}
@@ -57,5 +58,6 @@ plot_richness(weekone.ps, x = "Condition",
               measures = c("Shannon"), color = "Condition") +
      geom_point() +
      facet_grid(~Location) +
-     theme_bw()
+     theme_bw() +
+     labs(title = "Week 1 Shannon Diversity")
 ```
