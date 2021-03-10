@@ -64,6 +64,15 @@ percent.id.df$level <- factor(percent.id.df$level,
 
 # Quick plot to illustrate
 ggplot(percent.id.df, aes(x = level, y = pct)) +
-     geom_point()
+     geom_bar(stat = 'identity') +
+     labs(y = 'ASVs assigned (%)') +
+     theme_bw() +
+     theme(axis.title.x = element_blank(),
+           axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggsave(file.path(scratch.dir, 'figures/ASVs assigned to taxonomic level.png'),
+       height = 3, width = 4)
 ```
 
