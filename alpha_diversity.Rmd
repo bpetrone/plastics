@@ -7,7 +7,8 @@ output: html_document
 
 ###Initial Alpha Diversity Comparisons
 
-## Load Libraries
+##Setup
+#Load Libraries
 ```{r}
 library(readr)
 library(phyloseq)
@@ -16,12 +17,12 @@ library(dplyr)
 library(ggplot2)
 ```
 
-## Define Paths
+# Define Paths
 ```{r}
 plastics.rds = "/sharedspace/PlasticPeople/plastics.rds"
 ```
 
-## Check Phyloseq RDS
+# Check Phyloseq RDS
 Load your phyloseq RDS and `print` it just to be sure things look sane
 ```{r}
 plastics.ps = read_rds(plastics.rds)
@@ -32,6 +33,13 @@ print(plastics.ps)
 sample_variables(plastics.ps)
 ```
 
+
 ## Analysis
 #Week One
 Week one represents the time that samples were collected, before growth in individual conditions. Therefore, we would expect that the four samples for this timepoint should have the same taxa within a given location
+
+```{r}
+weekone.ps <- plastics.ps %>%
+     subset_samples(Week == 1)
+print(weekone.ps)
+```
