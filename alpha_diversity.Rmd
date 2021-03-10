@@ -5,4 +5,25 @@ date: "3/9/2021"
 output: html_document
 ---
 
-##Initial Alpha Diversity Comparisons
+###Initial Alpha Diversity Comparisons
+
+## Load Libraries
+```{r}
+library(readr)
+library(phyloseq)
+library(tibble)
+library(dplyr)
+library(ggplot2)
+```
+
+## Define Paths
+```{r}
+plastics.rds = "/sharedspace/PlasticPeople/plastics.rds"
+```
+
+## Check Phyloseq RDS
+Load your phyloseq RDS and `print` it just to be sure things look sane
+```{r}
+plastics.ps = read_rds(plastics.rds)
+print(plastics.ps)
+```
