@@ -27,3 +27,11 @@ Load your phyloseq RDS and `print` it just to be sure things look sane
 plastics.ps = read_rds(plastics.rds)
 print(plastics.ps)
 ```
+
+```{r}
+sample_variables(plastics.ps)
+```
+
+## Analysis
+#Week One
+Week one represents the time that samples were collected, before growth in individual conditions. Therefore, we would expect that the four samples for this timepoint should have the same taxa within a given location
