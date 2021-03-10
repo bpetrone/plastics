@@ -88,13 +88,15 @@ fastq-multx -m 3 -d 2 -x -B $BARCODE_TABLE \
 
 ### Reverse-complemented barcodes
 
-```{r}
+Note: tried this once, determined forward orientation to be better:  Exclude from future runs.
+
+```{r eval = FALSE}
 # Remove output from the previous demultiplexing step
 if (dir_exists(demux.dir)) {dir_delete(demux.dir)}
 dir_create(demux.dir)
 ```
 
-```{r}
+```{r eval = FALSE}
 # Reverse-complement the provided barcodes, save them in fastq-multx-compatible format
 read_tsv(map.file) %>% 
   select(Sample = "#SampleID", BarcodeSequence) %>%          
@@ -106,7 +108,7 @@ read_tsv(map.file) %>%
   write_delim(rc.barcode.table, delim="\t", col_names=FALSE)
 ```
 
-```{bash}
+```{bash eval = FALSE}
 set -u
 fastq-multx -m 3 -d 2 -x -B $RC_BARCODE_TABLE \
   $BARCODE_FASTQ \
@@ -120,3 +122,32 @@ fastq-multx -m 3 -d 2 -x -B $RC_BARCODE_TABLE \
 Total reads: 11,712,260
 Unmatched: 10,749,151
 Skipped because edit distance < 2: 256,285
+
+### Select project samples
+
+Need to separate our project's files from others in the dataset.
+
+```{r}
+metadata <- 
+  read_tsv(map.file) %>% 
+  select(Sample = "#SampleID", everything())
+head(metadata)
+```
+```{r}
+# Total number of samples on run
+dim(metadata)
+
+# Oours are those with info for week, location, and condition
+dim(filter(metadata, !is.na(Condition)))
+```
+
+Does this line up with how many samples we expect?
+4 sites x 4 conditions x 8 weeks (1-7, and 12) = 128-- great.
+
+```{r}
+# Trim metadata to these samples only
+metadata <- filter(metadata, !is.na(Condition))
+
+# Get their sample names (for pulling files)
+samples <- metadata$Sample
+```

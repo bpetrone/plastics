@@ -1,0 +1,78 @@
+---
+title: "Streamgraph"
+author: "Brianna Petrone"
+output: html_notebook
+---
+
+## Setup
+
+```{r}
+# Install packages
+
+# If not yet installed, need to install streamgraph as follows
+# devtools::install_github("hrbrmstr/streamgraph")
+```
+
+```{r}
+# Load libraries
+library(streamgraph)
+library(tidyverse)
+```
+
+```{r}
+# Set path variables
+# Directories
+data.dir <- '/data/project_data/argonne_data' # Data
+scratch.dir <- '/home/guest/scratch/plastics' # Scratch
+group.dir <- '/sharedspace/PlasticPeople' # Group
+```
+
+## Read in data
+
+```{r}
+# Phyloseq object
+ps <- readRDS(file.path(group.dir, 'plastics.rds'))
+ps
+```
+
+### Describe
+
+```{r}
+# How many taxa?
+ntaxa(ps)
+```
+
+```{r}
+# What phylogenetic level are these taxa specified to?
+
+# Get taxonomy table as data frame
+taxtab <- data.frame(tax_table(ps)@.Data)
+
+percent.id <- colSums(!is.na(taxtab))/nrow(taxtab)
+percent.id
+```
+
+```{r}
+# Convert to dataframe for easier plotting
+percent.id.df <- 
+     data.frame(pct = percent.id) %>% 
+     rownames_to_column(var = 'level')
+
+# Make taxonomic level a factor variable so it shows up in order on axis
+percent.id.df$level <- factor(percent.id.df$level,
+                              levels = percent.id.df$level)
+
+# Quick plot to illustrate
+ggplot(percent.id.df, aes(x = level, y = pct)) +
+     geom_bar(stat = 'identity') +
+     labs(y = 'ASVs assigned (%)') +
+     theme_bw() +
+     theme(axis.title.x = element_blank(),
+           axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggsave(file.path(scratch.dir, 'figures/ASVs assigned to taxonomic level.png'),
+       height = 3, width = 4)
+```
+
