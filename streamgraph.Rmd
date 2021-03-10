@@ -1,0 +1,41 @@
+---
+title: "Streamgraph"
+author: "Brianna Petrone"
+output: html_notebook
+---
+
+## Setup
+
+```{r}
+# Install packages
+
+# If not yet installed, need to install streamgraph as follows
+# devtools::install_github("hrbrmstr/streamgraph")
+```
+
+```{r}
+# Load libraries
+library(streamgraph)
+library(tidyverse)
+```
+
+```{r}
+# Set path variables
+# Directories
+data.dir <- '/data/project_data/argonne_data' # Data
+scratch.dir <- '/home/guest/scratch/plastics' # Scratch
+group.dir <- '/sharedspace/PlasticPeople' # Group
+```
+
+## Read in data
+
+```{r}
+# Phyloseq object
+ps <- readRDS(file.path(group.dir, 'plastics.rds'))
+ps
+```
+
+```{r}
+
+```
+
