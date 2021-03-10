@@ -52,3 +52,10 @@ plot_richness(weekone.ps, x = "Condition",
      theme_bw()
 ```
 
+```{r}
+plot_richness(weekone.ps, x = "Condition",
+              measures = c("Shannon"), color = "Condition") +
+     geom_point() +
+     facet_grid(~Location) +
+     theme_bw()
+```
