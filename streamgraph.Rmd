@@ -15,8 +15,9 @@ output: html_notebook
 
 ```{r}
 # Load libraries
-library(streamgraph)
-library(tidyverse)
+library(htmlwidgets) # For saving interactive streamgraph output
+library(streamgraph) # For streamgraphs
+library(tidyverse) # For data wrangling tools
 ```
 
 ```{r}
@@ -25,6 +26,7 @@ library(tidyverse)
 data.dir <- '/data/project_data/argonne_data' # Data
 scratch.dir <- '/home/guest/scratch/plastics' # Scratch
 group.dir <- '/sharedspace/PlasticPeople' # Group
+figs.dir <- file.path(scratch.dir, 'figures') # Figures
 ```
 
 ## Read in data
@@ -72,7 +74,78 @@ ggplot(percent.id.df, aes(x = level, y = pct)) +
 ```
 
 ```{r}
-ggsave(file.path(scratch.dir, 'figures/ASVs assigned to taxonomic level.png'),
+ggsave(file.path(figs.dir, '/ASVs assigned to taxonomic level.png'),
        height = 3, width = 4)
+```
+
+```{r}
+# How many unique entries at each level?
+# (Use to guide visualization)
+
+apply(taxtab, 2, function(x){length(unique(x))})
+```
+Wow, this is a lot of entries.  May make visualization tricky.  Let's try glomming to the highest level (phylum) and seeing how it looks.
+
+## Filter
+The other idea would be to filter low-abundance taxa to see if this helps at all.
+
+## Transform
+
+### Glom to phylum
+
+```{r}
+ps.phylum <- tax_glom(ps, taxrank = 'Phylum', NArm = FALSE)
+```
+
+## Streamgraph
+
+From (R Graph Gallery)[https://www.r-graph-gallery.com/154-basic-interactive-streamgraph-2.html]:
+Your input needs 3 columns:
+
+* a numeric variable for the X axis. Usually it provides time.
+* a numeric variable for the Y axis: this is the variable we are studying
+* a categorical variable: each group will be plotted as a distinct shape
+
+### Absolute abundances
+
+```{r}
+melt.phylum <- psmelt(ps.phylum)
+
+# Convert phylum variable to categorical
+melt.phylum$Phylum <- factor(melt.phylum$Phylum,
+                             levels = sort(unique(melt.phylum$Phylum)))
+```
+
+```{r}
+# Basic stream graph: just give the 3 arguments
+pp <- 
+        melt.phylum %>% 
+        filter(Location == 'RC' & Condition == 'Ctrl') %>% 
+        streamgraph(key=Phylum, value=Abundance, date=Week, scale = 'continuous',
+                    height="300px", width="400px")
+
+pp
+
+# save the widget
+# library(htmlwidgets)
+# saveWidget(pp, file=paste0( getwd(), "/HtmlWidget/streamgraphBasic.html"))
+```
+
+### Relative abundances
+
+```{r}
+# Don't actually need to convert in the dataset-- can just set offset argument to "expand"
+
+pp <- 
+        melt.phylum %>% 
+        filter(Location == 'RC' & Condition == 'Ctrl') %>% 
+        streamgraph(key=Phylum, value=Abundance, date=Week, 
+                    scale = 'continuous', offset = 'expand',
+                    height="300px", width="400px")
+
+pp
+
+# save the widget
+saveWidget(pp, file.path(figs.dir, "streamgraph_RC_Ctrl.html"))
 ```
 
