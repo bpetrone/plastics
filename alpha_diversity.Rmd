@@ -5,4 +5,94 @@ date: "3/9/2021"
 output: html_document
 ---
 
-##Initial Alpha Diversity Comparisons
+###Initial Alpha Diversity Comparisons
+
+##Setup
+#Load Libraries
+```{r}
+library(readr)
+library(phyloseq)
+library(tibble)
+library(dplyr)
+library(ggplot2)
+```
+
+# Define Paths
+```{r}
+plastics.rds = "/sharedspace/PlasticPeople/plastics.rds"
+```
+
+# Check Phyloseq RDS
+Load your phyloseq RDS and `print` it just to be sure things look sane
+```{r}
+plastics.ps = read_rds(plastics.rds)
+print(plastics.ps)
+```
+
+```{r}
+sample_variables(plastics.ps)
+```
+
+
+## Analysis
+#Week One
+Week one represents the time that samples were collected, before growth in individual conditions. Therefore, we would expect that the four samples for this timepoint should have the same taxa within a given location
+
+```{r}
+weekone.ps <- plastics.ps %>%
+     subset_samples(Week == 1)
+print(weekone.ps)
+```
+
+```{r}
+plot_richness(weekone.ps, x = "Condition",
+              measures = c("Observed"), color = "Condition") +
+     geom_point() +
+     facet_grid(~Location) +
+     theme_bw() +
+     labs(title = "Week 1 Observed ASVs")
+```
+
+```{r}
+plot_richness(weekone.ps, x = "Condition",
+              measures = c("Shannon"), color = "Condition") +
+     geom_point() +
+     facet_grid(~Location) +
+     theme_bw() +
+     labs(title = "Week 1 Shannon Diversity")
+```
+
+#Timecourse
+We want to get an idea of what the alpha diversity looks like for these samples across time
+
+Generate a dataframe containing the metadata and alpha diversity for all samples
+```{r}
+alphas <- estimate_richness(plastics.ps, measures = c("Observed", "Shannon"))
+meta <- data.frame(sample_data(plastics.ps))
+
+alphadiv <- meta %>%
+     mutate("Observed" = alphas$Observed, "Shannon" = alphas$Shannon)
+head(alphadiv)
+```
+
+Plot observed ASVs over time
+```{r}
+ggplot(alphadiv, aes(x = Week, y = Observed, color = Condition)) +
+     geom_point() +
+     geom_line() +
+     facet_wrap(~Location, ncol = 2) +
+     scale_x_continuous(limits = c(1,12), breaks = c(1,2,3,4,5,6,7,12)) +
+     theme_bw() +
+        labs(title = "Observed ASVs Across Time")
+```
+
+Plot Shannon diveristy over time
+```{r}
+ggplot(alphadiv, aes(x = Week, y = Shannon, color = Condition)) +
+     geom_point() +
+     geom_line() +
+     facet_wrap(~Location, ncol = 2) +
+     scale_x_continuous(limits = c(1,12), breaks = c(1,2,3,4,5,6,7,12)) +
+     theme_bw() +
+        labs(title = "Shannon Diversity Across Time")
+```
