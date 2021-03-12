@@ -92,11 +92,7 @@ Wow, this is a lot of entries.  May make visualization tricky.  Let's try glommi
 ps.ra <- transform_sample_counts(ps, function(x){x/sum(x)})
 ```
 
-### Glom to phylum
-
-```{r}
-ps.phylum <- tax_glom(ps, taxrank = 'Phylum', NArm = FALSE)
-```
+### Glom 
 
 ```{r}
 ps.family <- tax_glom(ps.ra, taxrank = 'Family', NArm = FALSE)
@@ -133,7 +129,6 @@ melt.family$Family <- factor(melt.family$Family,
                              levels = sort(unique(melt.family$Family)))
 ```
 
-
 ```{r}
 # Basic stream graph: just give the 3 arguments
 pp <- 
@@ -143,10 +138,30 @@ pp <-
                     height="300px", width="400px")
 
 pp
-
-# save the widget
-# library(htmlwidgets)
-# saveWidget(pp, file=paste0( getwd(), "/HtmlWidget/streamgraphBasic.html"))
 ```
 
+### Make all 16
+
+```{r}
+locations <- unique(sample_data(ps)$Location)
+conditions <- unique(sample_data(ps)$Condition)
+
+for (loc in locations){
+        for (cond in conditions){
+                # Make streamgraph
+                pp <- 
+                        melt.family %>% 
+                        filter(Location == loc & Condition == cond) %>% 
+                        streamgraph(key=Family, 
+                                    value=Abundance, date=Week, scale = 'continuous',
+                                    height="300px", width="400px")
+        
+                # Save
+                saveWidget(pp, file=file.path(figs.dir,
+                                              paste(loc, cond, 'streamgraph.html',
+                                              sep = '_')))
+        }
+}
+
+```
 
