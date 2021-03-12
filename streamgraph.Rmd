@@ -86,15 +86,32 @@ apply(taxtab, 2, function(x){length(unique(x))})
 ```
 Wow, this is a lot of entries.  May make visualization tricky.  Let's try glomming to the highest level (phylum) and seeing how it looks.
 
-## Filter
-The other idea would be to filter low-abundance taxa to see if this helps at all.
-
 ## Transform
+
+```{r}
+ps.ra <- transform_sample_counts(ps, function(x){x/sum(x)})
+```
 
 ### Glom to phylum
 
 ```{r}
 ps.phylum <- tax_glom(ps, taxrank = 'Phylum', NArm = FALSE)
+```
+
+```{r}
+ps.family <- tax_glom(ps.ra, taxrank = 'Family', NArm = FALSE)
+```
+
+## Filter
+The other idea would be to filter low-abundance taxa to see if this helps at all.
+
+```{r}
+# Only keep taxa with an abundance of 1% in at least 4 samples
+min_fraction = 0.01
+min_samples = 4
+ps.family.filt = filter_taxa(ps.family, 
+                             function(x) sum(x >= min_fraction) >= min_samples,
+                             prune=TRUE)
 ```
 
 ## Streamgraph
@@ -109,19 +126,20 @@ Your input needs 3 columns:
 ### Absolute abundances
 
 ```{r}
-melt.phylum <- psmelt(ps.phylum)
+melt.family <- psmelt(ps.family.filt)
 
-# Convert phylum variable to categorical
-melt.phylum$Phylum <- factor(melt.phylum$Phylum,
-                             levels = sort(unique(melt.phylum$Phylum)))
+# Convert family variable to categorical
+melt.family$Family <- factor(melt.family$Family,
+                             levels = sort(unique(melt.family$Family)))
 ```
+
 
 ```{r}
 # Basic stream graph: just give the 3 arguments
 pp <- 
-        melt.phylum %>% 
+        melt.family %>% 
         filter(Location == 'RC' & Condition == 'Ctrl') %>% 
-        streamgraph(key=Phylum, value=Abundance, date=Week, scale = 'continuous',
+        streamgraph(key=Family, value=Abundance, date=Week, scale = 'continuous',
                     height="300px", width="400px")
 
 pp
@@ -131,21 +149,4 @@ pp
 # saveWidget(pp, file=paste0( getwd(), "/HtmlWidget/streamgraphBasic.html"))
 ```
 
-### Relative abundances
-
-```{r}
-# Don't actually need to convert in the dataset-- can just set offset argument to "expand"
-
-pp <- 
-        melt.phylum %>% 
-        filter(Location == 'RC' & Condition == 'Ctrl') %>% 
-        streamgraph(key=Phylum, value=Abundance, date=Week, 
-                    scale = 'continuous', offset = 'expand',
-                    height="300px", width="400px")
-
-pp
-
-# save the widget
-saveWidget(pp, file.path(figs.dir, "streamgraph_RC_Ctrl.html"))
-```
 
