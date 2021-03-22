@@ -37,6 +37,22 @@ sample_variables(plastics.ps)
 ## Styrene Monomer
 We noticed from the alpha diversity analysis that in the RC and AS locations, the growth conditions with styrene monomer tracked together separately from the other two growth conditions. Thus, we want to use LEfSe to see if there are differences in the taxa associated with styrene monomer.
 
+In order to compare styrene containing versus styrene free media, I will need to create a new sample variable.
+```{r}
+metadata <- plastics.ps %>%
+     sample_data() %>%
+     as.data.frame()
+
+conditions <- metadata$Condition
+monomer <- ifelse(conditions %in% c("PSS", "S"), "has_monomer", "no_monomer")
+
+sample_data(plastics.ps)$monomer_presence <- monomer
+```
+
+```{r}
+sample_variables(plastics.ps)
+```
+
 #Overall PSS/S versus Ctrl/PS
 First, I want to see if there are any differences in taxa between media with and without styrene, regardless of the location that samples were originally taken from.
 
