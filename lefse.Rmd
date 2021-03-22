@@ -1,0 +1,35 @@
+---
+title: "LEfSe"
+author: "Katherine Mueller"
+date: "3/22/2021"
+output: html_document
+---
+
+###LEfSe Analysis
+
+##Setup
+#Load Libraries
+```{r}
+library(readr)
+library(phyloseq)
+library(tibble)
+library(dplyr)
+library(ggplot2)
+library(microbiomeMarker)
+```
+
+# Define Paths
+```{r}
+plastics.rds = "/sharedspace/PlasticPeople/plastics.rds"
+```
+
+# Check Phyloseq RDS
+Load your phyloseq RDS and `print` it just to be sure things look sane
+```{r}
+plastics.ps = read_rds(plastics.rds)
+print(plastics.ps)
+```
+
+```{r}
+sample_variables(plastics.ps)
+```
