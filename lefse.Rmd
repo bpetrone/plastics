@@ -33,3 +33,17 @@ print(plastics.ps)
 ```{r}
 sample_variables(plastics.ps)
 ```
+
+## Styrene Monomer
+We noticed from the alpha diversity analysis that in the RC and AS locations, the growth conditions with styrene monomer tracked together separately from the other two growth conditions. Thus, we want to use LEfSe to see if there are differences in the taxa associated with styrene monomer.
+
+#Overall PSS/S versus Ctrl/PS
+First, I want to see if there are any differences in taxa between media with and without styrene, regardless of the location that samples were originally taken from.
+
+#PSS/S versus Ctrl/PS in RC and AS locations
+Now, I want to compare media with and without styrene, accounting for the fact that we found the differences in alpha diversity in the samples from the RC and AS locations.
+```{r}
+RCAS.ps <- plastics.ps %>%
+     subset_samples(Location %in% c("RC", "AS"))
+print(RCAS.ps)
+```
