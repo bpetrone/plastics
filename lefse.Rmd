@@ -53,8 +53,23 @@ sample_data(plastics.ps)$monomer_presence <- monomer
 sample_variables(plastics.ps)
 ```
 
+Since we noticed this difference towards the end of the growth period, we should look specifically at the differences between groups at on weeks 7 and 12.
+```{r}
+endpoint.ps <- plastics.ps %>%
+     subset_samples(Week %in% c(7,12))
+print(endpoint.ps)
+```
+
 #Overall PSS/S versus Ctrl/PS
 First, I want to see if there are any differences in taxa between media with and without styrene, regardless of the location that samples were originally taken from.
+```{r}
+overall.lef <- lefse(endpoint.ps,
+                     class = "monomer_presence",
+                     multicls_strat = TRUE)
+```
+```{r}
+plot_ef_bar(overall.lef)
+```
 
 #PSS/S versus Ctrl/PS in RC and AS locations
 Now, I want to compare media with and without styrene, accounting for the fact that we found the differences in alpha diversity in the samples from the RC and AS locations.
