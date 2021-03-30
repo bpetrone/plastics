@@ -60,22 +60,62 @@ endpoint.ps <- plastics.ps %>%
 print(endpoint.ps)
 ```
 
+Since we want to find bacterial groups that could be tested in vitro for growth in plastic-containing media, it would be most convenient to identify specific species. Thus, I'll try filtering for just ASVs which were identifiable down to the species level.
+```{r}
+good.genus.ps <- endpoint.ps %>%
+     subset_taxa(!is.na(Genus))
+print(good.genus.ps)
+```
+
 #Overall PSS/S versus Ctrl/PS
 First, I want to see if there are any differences in taxa between media with and without styrene, regardless of the location that samples were originally taken from.
 ```{r}
 overall.lef <- lefse(endpoint.ps,
                      class = "monomer_presence",
-                     lda_cutoff = 5,
-                     multicls_strat = TRUE)
-```
-```{r}
+                     lda_cutoff = 4,
+                     correct = "1")
 plot_ef_bar(overall.lef)
 ```
+```{r}
+#after filtering for ASVs identified at the species level
+overall.lef2 <- lefse(good.genus.ps,
+                     class = "monomer_presence",
+                     lda_cutoff = 4,
+                     correct = "1")
+plot_ef_bar(overall.lef2, label_level = 0)
+```
+
 
 #PSS/S versus Ctrl/PS in RC and AS locations
 Now, I want to compare media with and without styrene, accounting for the fact that we found the differences in alpha diversity in the samples from the RC and AS locations.
 ```{r}
-RCAS.ps <- plastics.ps %>%
+RCAS.endpoint.ps <- endpoint.ps %>%
      subset_samples(Location %in% c("RC", "AS"))
 print(RCAS.ps)
 ```
+
+```{r}
+RCAS.lef <- lefse(RCAS.endpoint.ps,
+                     class = "monomer_presence",
+                     lda_cutoff = 4,
+                     multicls_strat = TRUE)
+plot_ef_bar(RCAS.lef)
+```
+```{r}
+RCAS.goodgenus.ps <- good.genus.ps %>%
+     subset_samples(Location %in% c("RC", "AS"))
+print(RCAS.goodspecies.ps)
+```
+
+```{r}
+RCAS.lef2 <- lefse(RCAS.goodgenus.ps,
+                     class = "monomer_presence",
+                     lda_cutoff = 4,
+                     multicls_strat = TRUE)
+plot_ef_bar(RCAS.lef2, label_level = 0)
+```
+
+```{r}
+
+```
+
