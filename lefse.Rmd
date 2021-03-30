@@ -65,6 +65,7 @@ First, I want to see if there are any differences in taxa between media with and
 ```{r}
 overall.lef <- lefse(endpoint.ps,
                      class = "monomer_presence",
+                     lda_cutoff = 5,
                      multicls_strat = TRUE)
 ```
 ```{r}
