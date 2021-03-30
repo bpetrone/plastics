@@ -115,7 +115,46 @@ RCAS.lef2 <- lefse(RCAS.goodgenus.ps,
 plot_ef_bar(RCAS.lef2, label_level = 0)
 ```
 
+## Simplify LEfSe outputs
+All of these outputs have been pretty messy to look at, even with the requirement for an LD score of 4. This is because the output includes taxonomic groups higher than genus. While this could be useful, we don't really need these higher levels while we're focusing on the genus/species of each ASV. We can keep Family around for ease of identification
 ```{r}
+#Combine the genus and species identifications
+taxa <- tax_table(good.genus.ps) %>%
+     as.data.frame()
+taxa$Genus_new <- paste(taxa$Genus, taxa$Species, sep = "_")
 
+#Get rid of everything but the genus/species combo
+new_taxa <- taxa %>%
+     select(Genus_new)
+colnames(new_taxa)[1] <- "Genus"
+
+#Replace the taxa table in the phyloseq object with the new genus/species only table
+clean.plastics.ps <- good.genus.ps
+tax_table(clean.plastics.ps) <- as.matrix(new_taxa)
 ```
 
+Overall PSS/S versus Ctrl/PS
+```{r}
+clean.overall.lef <- lefse(clean.plastics.ps,
+                     class = "monomer_presence",
+                     lda_cutoff = 3,
+                     correct = "1")
+plot_ef_bar(clean.overall.lef)
+```
+
+Just the RC and AS locations
+```{r}
+#Filter for locations of interest
+RCAS.clean.ps <- clean.plastics.ps %>%
+     subset_samples(Location %in% c("RC", "AS"))
+print(RCAS.clean.ps)
+```
+```{r}
+#Perform lefse analysis
+clean.RCAS.lef <- lefse(RCAS.clean.ps,
+                        class = "monomer_presence",
+                        lda_cutoff = 3,
+                        correct = "1")
+plot_ef_bar(clean.RCAS.lef) +
+     scale_fill_manual(values = c("has_monomer" = "blue", "no_monomer" = "grey"))
+```
