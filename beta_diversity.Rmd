@@ -1,0 +1,23 @@
+---
+title: "Beta diversity"
+author: "Brianna Petrone"
+date: "3/31/2021"
+output: html_document
+---
+
+# Setup
+
+```{r}
+# Load libraries
+library(phyloseq)
+library(tidyverse) # For data wrangling tools
+```
+
+```{r}
+# Set paths
+data.dir <- '/data/project_data/argonne_data' # Data
+scratch.dir <- '/home/guest/scratch/plastics' # Scratch
+group.dir <- '/sharedspace/PlasticPeople' # Group
+figs.dir <- file.path(scratch.dir, 'figures') # Figures
+```
+
