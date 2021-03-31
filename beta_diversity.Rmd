@@ -8,7 +8,15 @@ output: html_document
 # Setup
 
 ```{r}
+# Install packages
+
+# If not yet installed, need to install driver (for CLR transform) as follows
+# devtools::install_github("jsilve24/driver")
+```
+
+```{r include=FALSE, echo=FALSE}
 # Load libraries
+library(driver)
 library(phyloseq)
 library(tidyverse) # For data wrangling tools
 ```
@@ -29,7 +37,9 @@ ps <- readRDS(file.path(group.dir, 'plastics.rds'))
 ps
 ```
 
-# Transform
+# Preprocessing
+
+## Transform
 
 ```{r}
 # Plan ahead
@@ -48,10 +58,152 @@ min(asvtab)
 ps.ra <- transform_sample_counts(ps, function(x){x/sum(x)})
 ```
 
-# Filter
+## Filter
+
+Want to do a thoughtful filtering step here.  For streamgraphs tried glomming to family level, then only keeping taxa with an abundance of 1% in at least 4 samples (because we might expect each location to be reasonably different, but is tested in 4 conditions at each timepoint).  
+
+See how stringent this is, and how many more taxa are included if relaxed (perhaps to 2 samples)?
+
+At the ASV level, we may want to relax this further (say to 0.01%)?
+
+```{r}
+# 0.01% in at least 4 samples
+min_fraction = 0.0001
+min_samples = 4
+filter_taxa(ps.ra, 
+            function(x) sum(x >= min_fraction) >= min_samples, prune=TRUE)
+```
+
+This reduces the number of taxa by `r 100*(1-(3547/ntaxa(ps)))`%.
+
+```{r}
+# 0.01% in at least 2 samples
+min_fraction = 0.0001
+min_samples = 2
+filter_taxa(ps.ra, 
+            function(x) sum(x >= min_fraction) >= min_samples, prune=TRUE)
+```
+
+This reduces the number of taxa by `r 100*(1-(6069/ntaxa(ps)))`%.
+
+```{r}
+# 0.1% in at least 1 samples
+min_fraction = 0.001
+min_samples = 1
+ps.ra.filt <- 
+     filter_taxa(ps.ra, 
+                 function(x) sum(x >= min_fraction) >= min_samples, prune=TRUE)
+ps.ra.filt
+```
+
+This reduces the number of taxa by `r 100*(1-(2933/ntaxa(ps)))`%.
+
+Choosing the third filter condition for now.  I think a tenth of a percent is a meaningful relative abundance, and I like permitting keeping the threshold at that amount in 1 sample because there's so little replication in this dataset.
 
 # Ordinate
 
 ## By ASV
+
+### PCA
+
+#### CLR transform input
+
+```{r}
+# Pseudocount has already been added, pre-transformation, so no need to do here
+
+# Get ASV table
+asvtab <- otu_table(ps.ra.filt)@.Data
+
+# Transform
+asvtab.clr <- clr(asvtab)
+
+# Replace names, but remember these aren't interpretable as strict ASVs any longer
+colnames(asvtab.clr) <- colnames(asvtab)
+
+# Make updated phyloseq object
+ps.clr <- phyloseq(otu_table(asvtab.clr, taxa_are_rows = FALSE),
+                   sample_data(sample_data(ps)),
+                   tax_table(tax_table(ps)))
+```
+
+#### Run
+
+```{r}
+# Run PCA
+pca <- prcomp(asvtab.clr)
+```
+
+#### Plot
+
+```{r}
+# Get sample data
+samdf <- 
+    sample_data(ps.clr) %>% 
+    as(., 'data.frame') 
+
+# Add back sample data to PCA results
+pca.df <- 
+     data.frame(pca$x) %>% 
+     rownames_to_column(var = 'sample')
+pca.df <- left_join(pca.df, rownames_to_column(samdf, var = 'sample'))
+
+# Figure out axis limits to customize scale of data
+# Find the largest magnitude datapoint in the first 2 PCs, then add 5% to it for 
+# plotting "room"
+limit <- max(abs(pca.df[, c('PC1','PC2')])) +
+     0.05*(max(abs(pca.df[, c('PC1','PC2')])))
+
+# % variance explained
+eigs <- pca$sdev^2
+ve.pc1 <- as.character(100*round(eigs[1] / sum(eigs), 3))
+ve.pc2 <- as.character(100*round(eigs[2] / sum(eigs), 3))
+```
+
+```{r}
+# Plot by location
+pca.plot <- 
+     ggplot(pca.df, aes(PC1, PC2, color = Location)) +
+     geom_point() +
+     coord_equal() +
+     xlim(-limit, limit) + ylim(-limit, limit) + 
+     labs(x = paste0(' PC1 (', ve.pc1, '%)'),
+          y = paste0(' PC1 (', ve.pc2, '%)'),
+          color = 'Sample source') + 
+     theme_bw()
+
+pca.plot
+```
+
+```{r}
+# Plot by timecourse
+pca.plot <- 
+     ggplot(pca.df, aes(PC1, PC2, color = Week)) +
+     geom_point() +
+     coord_equal() +
+     xlim(-limit, limit) + ylim(-limit, limit) + 
+     labs(x = paste0(' PC1 (', ve.pc1, '%)'),
+          y = paste0(' PC1 (', ve.pc2, '%)'),
+          color = 'Bioreactor week') + 
+     theme_bw()
+
+pca.plot
+```
+
+```{r}
+# Plot by treatment
+pca.plot <- 
+     ggplot(pca.df, aes(PC1, PC2, color = Condition)) +
+     geom_point() +
+     coord_equal() +
+     xlim(-limit, limit) + ylim(-limit, limit) + 
+     labs(x = paste0(' PC1 (', ve.pc1, '%)'),
+          y = paste0(' PC1 (', ve.pc2, '%)'),
+          color = 'Treatment condition') + 
+     theme_bw()
+
+pca.plot
+```
+
+### PCoA 
 
 ## Glom to family
