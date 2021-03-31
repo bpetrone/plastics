@@ -21,3 +21,37 @@ group.dir <- '/sharedspace/PlasticPeople' # Group
 figs.dir <- file.path(scratch.dir, 'figures') # Figures
 ```
 
+# Read in data
+
+```{r}
+# Phyloseq object
+ps <- readRDS(file.path(group.dir, 'plastics.rds'))
+ps
+```
+
+# Transform
+
+```{r}
+# Plan ahead
+# Want to add pseudocount before CLR-transforming; easiest to do this now, while data are still interpreted as counts
+
+# Pseudocount of 1 for compatibility with log transform
+otu_table(ps) <- otu_table(ps) + 1 
+
+# Check it worked
+asvtab <- otu_table(ps)@.Data
+min(asvtab)
+```
+
+```{r}
+# Transform to relative abundance
+ps.ra <- transform_sample_counts(ps, function(x){x/sum(x)})
+```
+
+# Filter
+
+# Ordinate
+
+## By ASV
+
+## Glom to family
