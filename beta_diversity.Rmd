@@ -10,14 +10,17 @@ output: html_document
 ```{r}
 # Install packages
 
-# If not yet installed, need to install driver (for CLR transform) as follows
-# devtools::install_github("jsilve24/driver")
+# If not yet installed, need to install as follows
+# install.packages("cowplot") # For multi-panel plot layouts
+# devtools::install_github("jsilve24/driver") # For CLR transform
 ```
 
 ```{r include=FALSE, echo=FALSE}
 # Load libraries
+library(cowplot)
 library(driver)
 library(phyloseq)
+library(RColorBrewer) # For plot colors
 library(tidyverse) # For data wrangling tools
 ```
 
@@ -38,6 +41,42 @@ ps
 ```
 
 # Preprocessing
+
+## Refactor sample data
+
+To facilitate plotting
+
+```{r}
+sample_data(ps)$Location <- factor(sample_data(ps)$Location,
+                                   labels = c('Activated sludge',
+                                              'Elizabeth River',
+                                              'Landfill',
+                                              'Recycling center'))
+
+sample_data(ps)$Environment <- 
+     ifelse(sample_data(ps)$Location == 'Elizabeth River',
+            yes = 1,
+            no = 0) %>% 
+     factor(labels = c('Waste management facilities', 
+                       'Natural environment'))
+
+sample_data(ps)$Week <- as.numeric(sample_data(ps)$Week)
+
+sample_data(ps)$Condition <- factor(sample_data(ps)$Condition,
+                                   labels = c('No treatment',
+                                              'Polymer',
+                                              'Polymer and monomer',
+                                              'Monomer'))
+
+# Add extra column for monomer present
+sample_data(ps)$Monomer <- 
+     ifelse(grepl('[Mm]onomer', sample_data(ps)$Condition),
+            yes = 1,
+            no = 0) %>% 
+     factor(labels = c('Without styrene', 
+                       'With styrene'))
+```
+
 
 ## Transform
 
@@ -159,51 +198,141 @@ ve.pc1 <- as.character(100*round(eigs[1] / sum(eigs), 3))
 ve.pc2 <- as.character(100*round(eigs[2] / sum(eigs), 3))
 ```
 
+
 ```{r}
 # Plot by location
-pca.plot <- 
+# pca.plot <- 
+#      ggplot(pca.df, aes(PC1, PC2, color = Environment)) +
+#      geom_point() +
+#      coord_equal() +
+#      xlim(-limit, limit) + ylim(-limit, limit) + 
+#      labs(x = paste0(' PC1 (', ve.pc1, '%)'),
+#           y = paste0(' PC1 (', ve.pc2, '%)'),
+#           color = 'Sample source') + 
+#      scale_color_manual(values = c('gray60', 'skyblue3')) +
+#      theme_bw()
+
+a <-
      ggplot(pca.df, aes(PC1, PC2, color = Location)) +
      geom_point() +
      coord_equal() +
-     xlim(-limit, limit) + ylim(-limit, limit) + 
-     labs(x = paste0(' PC1 (', ve.pc1, '%)'),
-          y = paste0(' PC1 (', ve.pc2, '%)'),
-          color = 'Sample source') + 
-     theme_bw()
+     xlim(-limit, limit) + ylim(-limit, limit) +
+     labs(x = paste0(' Principal Component 1 (', ve.pc1, '%)'),
+          y = paste0(' Principal Component 2 (', ve.pc2, '%)'),
+          title = 'Sample source') +
+     scale_color_manual(values = c('gray60', 'skyblue3', 'gray40', 'gray80')) +
+     theme(legend.position = c(0.8, 0.8),
+           plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+           panel.border = element_blank(), 
+           panel.grid.major = element_blank(), 
+           panel.grid.minor = element_blank(), 
+           axis.line = element_line(colour = "black", 
+                                    size = rel(1)), 
+           legend.key = element_blank(), 
+           legend.title = element_blank(), 
+           panel.background = element_rect(fill = "white", 
+                                           colour = NA),
+           strip.background = element_rect(fill = "white", colour = "black", 
+                                           size = rel(2)), complete = TRUE)
 
-pca.plot
+a
 ```
 
 ```{r}
 # Plot by timecourse
-pca.plot <- 
-     ggplot(pca.df, aes(PC1, PC2, color = Week)) +
-     geom_point() +
-     coord_equal() +
-     xlim(-limit, limit) + ylim(-limit, limit) + 
-     labs(x = paste0(' PC1 (', ve.pc1, '%)'),
-          y = paste0(' PC1 (', ve.pc2, '%)'),
-          color = 'Bioreactor week') + 
-     theme_bw()
+b <- 
+    ggplot(pca.df, aes(PC1, PC2, color = Week)) +
+    geom_point() +
+    coord_equal() +
+    xlim(-limit, limit) + ylim(-limit, limit) + 
+    labs(x = paste0(' PC 1 (', ve.pc1, '%)'),
+         y = paste0(' PC 2 (', ve.pc2, '%)'),
+         title = 'Bioreactor week') + 
+    scale_color_distiller(palette = 'Greys', direction = 1) +
+    theme(legend.position = c(0.8, 0.8),
+          plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+          axis.title.y = element_blank(),
+           panel.border = element_blank(), 
+           panel.grid.major = element_blank(), 
+           panel.grid.minor = element_blank(), 
+           axis.line = element_line(colour = "black", 
+                                    size = rel(1)), 
+          legend.title = element_blank(), 
+           legend.key = element_blank(), 
+           panel.background = element_rect(fill = "white", 
+                                           colour = NA),
+           strip.background = element_rect(fill = "white", colour = "black", 
+                                           size = rel(2)), complete = TRUE)
 
-pca.plot
+
+b
 ```
 
 ```{r}
 # Plot by treatment
-pca.plot <- 
-     ggplot(pca.df, aes(PC1, PC2, color = Condition)) +
+c <- 
+     ggplot(pca.df, aes(PC1, PC2, color = Monomer)) +
      geom_point() +
      coord_equal() +
      xlim(-limit, limit) + ylim(-limit, limit) + 
-     labs(x = paste0(' PC1 (', ve.pc1, '%)'),
-          y = paste0(' PC1 (', ve.pc2, '%)'),
-          color = 'Treatment condition') + 
-     theme_bw()
+     labs(x = paste0(' PC 1 (', ve.pc1, '%)'),
+          y = paste0(' PC 2 (', ve.pc2, '%)'),
+          title = 'Treatment condition') + 
+     scale_color_manual(values = c('gray60', 'red3')) +
+     theme(legend.position = c(0.8, 0.8),
+           plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+           axis.title.y = element_blank(), 
+           panel.border = element_blank(), 
+           panel.grid.major = element_blank(), 
+           panel.grid.minor = element_blank(), 
+           axis.line = element_line(colour = "black", 
+                                    size = rel(1)), 
+           legend.key = element_blank(), 
+           legend.title = element_blank(), 
+           panel.background = element_rect(fill = "white", 
+                                           colour = NA),
+           strip.background = element_rect(fill = "white", colour = "black", 
+                                           size = rel(2)), complete = TRUE)
 
-pca.plot
+
+c
 ```
 
+```{r}
+# Put together in figure
+# Title "Environment type, rather than treatment variables, determines microbial composition over in bioreactor samples"
+p <- plot_grid(a, b, c,
+               align = 'h',
+               rows = 1)
+p
+
+title <- ggdraw() + 
+  draw_label(
+    "Source environment, rather than treatment variables,\ndetermines microbial composition in bioreactor samples",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) +
+  theme(
+    # add margin on the left of the drawing canvas,
+    # so title is aligned with left edge of first plot
+    plot.margin = margin(0, 0, 0, 45)
+  )
+
+plot_grid(
+  title, p,
+  ncol = 1,
+  # rel_heights values control vertical title margins
+  rel_heights = c(0.1, 1)
+)
+
+ggsave(file.path(figs.dir, 'Beta diversity.pdf'),
+                 width = 10, height = 4)
+```
+
+
 ### PCoA 
+
+Want to check the above given how astoundingly clean/striking the plot is.  Think this could be secondary to the timeseries nature of the data, but want to be sure.
 
 ## Glom to family
