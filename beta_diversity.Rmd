@@ -40,6 +40,24 @@ ps <- readRDS(file.path(group.dir, 'plastics.rds'))
 ps
 ```
 
+```{r}
+# Imputed missing data
+# Note: have to manually enter column types, because otherwise will impute a logical value for species based on the first 1000 rows of data
+
+imputed <- 
+     read_csv(file.path(group.dir, 'imputed_plastics_data.csv'),
+              col_types = 'dccdccncnccnccccccccc')
+```
+
+```{r}
+# Check dimensions of imputed data in proportion to input data
+dim(imputed)
+
+# Figure out-- are taxa the same between the two?
+all(imputed$OTU %in% taxa_names(ps))
+all(taxa_names(ps) %in% imputed$OTU)
+```
+
 # Preprocessing
 
 ## Refactor sample data
