@@ -1,0 +1,22 @@
+---
+title: "Imputed data"
+output: html_notebook
+---
+
+This notebook incorporates the imputed data into the existing phyloseq object
+
+# Setup
+
+```{r libraries, include = FALSE, echo = FALSE}
+# Load libraries
+library(phyloseq)
+library(tidyverse) # For data wrangling tools
+```
+
+```{r paths, include = FALSE, echo = FALSE}
+
+```
+
+# Load existing data
+
+# Incorporate imputed data
