@@ -1,0 +1,115 @@
+---
+title: "Imputed data"
+output: html_notebook
+---
+
+This notebook incorporates the imputed data into the existing phyloseq object
+
+# Setup
+
+```{r libraries, include = FALSE, echo = FALSE}
+# Load libraries
+library(phyloseq)
+library(tidyverse) # For data wrangling tools
+```
+
+```{r paths, include = FALSE, echo = FALSE}
+group.dir <- '/sharedspace/PlasticPeople' # Group
+```
+
+# Load data
+
+```{r}
+# Phyloseq object
+ps <- readRDS(file.path(group.dir, 'plastics.rds'))
+ps
+```
+
+```{r}
+# Imputed missing data
+# Note: have to manually enter column types, because otherwise will impute a logical value for species based on the first 1000 rows of data
+
+# # Filtered data
+# imputed <- 
+#      read_csv(file.path(group.dir, 'imputed_plastics_filt_data.csv'),
+#               col_types = 'ccdccncnccnccccccccc')
+
+# Raw data
+imputed <-
+     read_csv(file.path(group.dir, 'imputed_plastics_unfilt_data.csv'),
+              col_types = 'ccdccncnccnccccccccc')
+```
+
+```{r}
+# Check dimensions of imputed data in proportion to input data
+dim(imputed)
+
+# Figure out-- are taxa the same between the two?
+all(imputed$OTU %in% taxa_names(ps))
+all(taxa_names(ps) %in% imputed$OTU) 
+```
+
+A "FALSE" is okay in the second part here because the data were pre-filtered. For a better comparison I should go back and check against the filtered taxa list. However, the number checks out:
+
+```{r}
+n_distinct(imputed$OTU)
+```
+
+# Incorporate imputed data
+
+```{r}
+names(imputed)
+```
+
+
+```{r}
+# Taxonomy table
+taxtab <- 
+     imputed %>% 
+     select(OTU, Kingdom:Species) %>% 
+     distinct() %>% # Reduce to distinct entries
+     column_to_rownames(var = 'OTU')
+     
+# Check dimensions
+dim(taxtab)
+```
+
+```{r}
+# Sample data
+samdf <- 
+     imputed %>% 
+     select(Sample, BarcodeSequence:Condition) %>% 
+     distinct() %>% 
+     column_to_rownames(var = 'Sample')
+
+dim(samdf)
+```
+
+```{r}
+# ASV table
+# Currently in long form, need to go to wide
+asvtab <- 
+     imputed %>% 
+     select(Sample, OTU, Abundance) %>% 
+     mutate(Abundance = as.integer(Abundance)) %>% 
+     pivot_wider(names_from = OTU, values_from = Abundance) %>% 
+     column_to_rownames(var = 'Sample')
+
+dim(asvtab)
+```
+
+```{r}
+# Re-make phyloseq object
+ps.imputed <- phyloseq(otu_table(asvtab, taxa_are_rows = FALSE),
+                       sample_data(samdf),
+                       tax_table(as.matrix(taxtab)))
+
+ps.imputed
+```
+
+```{r}
+# Save to shared drive
+saveRDS(ps.imputed, 
+        file.path(group.dir, 'plastics_imputed.rds'))
+```
+
