@@ -27,6 +27,7 @@ ps
 
 ```{r}
 # Imputed missing data
+# Comment/uncomment corresponding lines depending on input data
 # Note: have to manually enter column types, because otherwise will impute a logical value for species based on the first 1000 rows of data
 
 # # Filtered data
@@ -109,7 +110,11 @@ ps.imputed
 
 ```{r}
 # Save to shared drive
-saveRDS(ps.imputed, 
+# Comment/uncomment corresponding line depending on input data
+saveRDS(ps.imputed,
         file.path(group.dir, 'plastics_imputed.rds'))
+
+# saveRDS(ps.imputed,
+#         file.path(group.dir, 'plastics_imputed_filt.rds'))
 ```
 
