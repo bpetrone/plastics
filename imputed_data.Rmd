@@ -28,8 +28,15 @@ ps
 ```{r}
 # Imputed missing data
 # Note: have to manually enter column types, because otherwise will impute a logical value for species based on the first 1000 rows of data
-imputed <- 
-     read_csv(file.path(group.dir, 'imputed_plastics_filt_data.csv'),
+
+# # Filtered data
+# imputed <- 
+#      read_csv(file.path(group.dir, 'imputed_plastics_filt_data.csv'),
+#               col_types = 'ccdccncnccnccccccccc')
+
+# Raw data
+imputed <-
+     read_csv(file.path(group.dir, 'imputed_plastics_unfilt_data.csv'),
               col_types = 'ccdccncnccnccccccccc')
 ```
 
@@ -93,16 +100,16 @@ dim(asvtab)
 
 ```{r}
 # Re-make phyloseq object
-ps.filt.imputed <- phyloseq(otu_table(asvtab, taxa_are_rows = FALSE),
-                            sample_data(samdf),
-                            tax_table(as.matrix(taxtab)))
+ps.imputed <- phyloseq(otu_table(asvtab, taxa_are_rows = FALSE),
+                       sample_data(samdf),
+                       tax_table(as.matrix(taxtab)))
 
-ps.filt.imputed
+ps.imputed
 ```
 
 ```{r}
 # Save to shared drive
-saveRDS(ps.filt.imputed, 
-        file.path(group.dir, 'plastics_imputed_filt.rds'))
+saveRDS(ps.imputed, 
+        file.path(group.dir, 'plastics_imputed.rds'))
 ```
 
