@@ -20,6 +20,7 @@ library(ggplot2)
 # Define Paths
 ```{r}
 plastics.rds = "/sharedspace/PlasticPeople/plastics.rds"
+imputed.rds = "/sharedspace/PlasticPeople/plastics_imputed.rds"
 ```
 
 # Check Phyloseq RDS
@@ -28,11 +29,17 @@ Load your phyloseq RDS and `print` it just to be sure things look sane
 plastics.ps = read_rds(plastics.rds)
 print(plastics.ps)
 ```
+```{r}
+imputed.ps = read_rds(imputed.rds)
+print(imputed.ps)
+```
 
 ```{r}
 sample_variables(plastics.ps)
 ```
-
+```{r}
+sample_variables(imputed.ps)
+```
 
 ## Analysis
 #Week One
@@ -93,6 +100,30 @@ ggplot(alphadiv, aes(x = Week, y = Shannon, color = Condition)) +
      geom_line() +
      facet_wrap(~Location, ncol = 2) +
      scale_x_continuous(limits = c(1,12), breaks = c(1,2,3,4,5,6,7,12)) +
+     theme_bw() +
+        labs(title = "Shannon Diversity Across Time")
+```
+
+#Imputed Timecourse
+We want to repeat the plotting of Shannon diversity overtime using the dataset containing imputed values for weeks 8-11
+
+Generate a dataframe containing the metadata and alpha diversity for all samples
+```{r}
+imputed.alphas <- estimate_richness(imputed.ps, measures = c("Observed", "Shannon"))
+imputed.meta <- data.frame(sample_data(imputed.ps))
+
+imputed.alphadiv <- imputed.meta %>%
+     mutate("Observed" = imputed.alphas$Observed, "Shannon" = imputed.alphas$Shannon)
+head(imputed.alphadiv)
+```
+
+Plot Shannon diveristy over time
+```{r}
+ggplot(imputed.alphadiv, aes(x = Week, y = Shannon, color = Condition)) +
+     geom_point() +
+     geom_line() +
+     facet_wrap(~Location, ncol = 2) +
+     scale_x_continuous(limits = c(1,12), breaks = c(1,2,3,4,5,6,7,8,9,10,11,12)) +
      theme_bw() +
         labs(title = "Shannon Diversity Across Time")
 ```
