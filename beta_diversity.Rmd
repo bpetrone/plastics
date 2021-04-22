@@ -58,9 +58,9 @@ sample_data(ps)$Location <- factor(sample_data(ps)$Location,
 sample_data(ps)$Week <- as.numeric(sample_data(ps)$Week)
 
 sample_data(ps)$Week_binned <- cut(sample_data(ps)$Week, 
-                                   breaks = c(0, 4.1, 7.1, 12.1), 
-                                   labels = c('Weeks 1-4', 'Weeks 5-7', 
-                                              'Weeks 8-12'))
+                                   breaks = c(0, 1.1, 4.1, 7.1, 12.1), 
+                                   labels = c('Inoculation', 'Weeks 2-4', 
+                                              'Weeks 5-7', 'Weeks 8-12'))
 
 sample_data(ps)$Condition <- factor(sample_data(ps)$Condition,
                                    labels = c('No treatment',
@@ -250,7 +250,7 @@ b <-
           y = '  ', # Need empty space here to keep plots same size
           title = 'Bioreactor week') + 
      # scale_color_distiller(palette = 'Greys', direction = 1) +
-     scale_color_manual(values = brewer.pal(3, 'Greens')[3:1]) +
+     scale_color_manual(values = c('black', brewer.pal(3, 'Greens')[3:1])) +
      theme(legend.position = c(0.8, 0.8),
            plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
            panel.border = element_blank(), 
