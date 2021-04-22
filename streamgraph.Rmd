@@ -33,7 +33,9 @@ figs.dir <- file.path(scratch.dir, 'figures') # Figures
 
 ```{r}
 # Phyloseq object
-ps <- readRDS(file.path(group.dir, 'plastics.rds'))
+ps <- readRDS(file.path(group.dir, 'plastics.rds')) # Raw data
+# ps <- readRDS(file.path(group.dir, 'plastics_imputed.rds')) # Raw, imputed data
+# ps <- readRDS(file.path(group.dir, 'plastics_imputed_filt.rds')) # Filtered, imputed data
 ps
 ```
 
@@ -95,19 +97,26 @@ ps.ra <- transform_sample_counts(ps, function(x){x/sum(x)})
 ### Glom 
 
 ```{r}
-ps.family <- tax_glom(ps.ra, taxrank = 'Family', NArm = FALSE)
+# ps.family <- tax_glom(ps.ra, taxrank = 'Family', NArm = FALSE)
 ```
 
 ## Filter
 The other idea would be to filter low-abundance taxa to see if this helps at all.
 
 ```{r}
-# Only keep taxa with an abundance of 1% in at least 4 samples
+# Only keep taxa with an abundance of 1% in at least one sample
 min_fraction = 0.01
-min_samples = 4
-ps.family.filt = filter_taxa(ps.family, 
-                             function(x) sum(x >= min_fraction) >= min_samples,
-                             prune=TRUE)
+min_samples = 1
+
+# On glommed data
+# ps.family.filt = filter_taxa(ps.family, 
+#                              function(x) sum(x >= min_fraction) >= min_samples,
+#                              prune=TRUE)
+
+# On raw data
+ps.ra.filt = filter_taxa(ps.ra,
+                         function(x) sum(x >= min_fraction) >= min_samples,
+                         prune=TRUE)
 ```
 
 ## Streamgraph
@@ -119,23 +128,38 @@ Your input needs 3 columns:
 * a numeric variable for the Y axis: this is the variable we are studying
 * a categorical variable: each group will be plotted as a distinct shape
 
-### Absolute abundances
+```{r}
+melt <- psmelt(ps.ra.filt)
+
+# Make joined name for each OTU
+melt <- mutate(melt,
+               name = paste(Kingdom, Phylum, Class, Order, Family, Genus,
+                            Species, sep = ';'))
+
+# Convert to factor
+melt$name <- factor(melt$name)
+```
 
 ```{r}
-melt.family <- psmelt(ps.family.filt)
+n_distinct(melt$OTU)
+n_distinct(melt$name)
+```
+Nice; this reduces further.
 
-# Convert family variable to categorical
-melt.family$Family <- factor(melt.family$Family,
-                             levels = sort(unique(melt.family$Family)))
+```{r}
+melt <- 
+     melt %>% 
+     group_by(Week, Location, Condition, name) %>% 
+     summarize(Abundance = sum(Abundance))
 ```
 
 ```{r}
 # Basic stream graph: just give the 3 arguments
 pp <- 
-        melt.family %>% 
-        filter(Location == 'RC' & Condition == 'Ctrl') %>% 
-        streamgraph(key=Family, value=Abundance, date=Week, scale = 'continuous',
-                    height="300px", width="400px")
+     melt %>% 
+     filter(Location == 'RC' & Condition == 'Ctrl') %>% 
+     streamgraph(key=name, value=Abundance, date=Week, scale = 'continuous',
+                 height="300px", width="400px")
 
 pp
 ```
@@ -147,20 +171,21 @@ locations <- unique(sample_data(ps)$Location)
 conditions <- unique(sample_data(ps)$Condition)
 
 for (loc in locations){
-        for (cond in conditions){
-                # Make streamgraph
-                pp <- 
-                        melt.family %>% 
-                        filter(Location == loc & Condition == cond) %>% 
-                        streamgraph(key=Family, 
-                                    value=Abundance, date=Week, scale = 'continuous',
-                                    height="300px", width="400px")
-        
-                # Save
-                saveWidget(pp, file=file.path(figs.dir,
-                                              paste(loc, cond, 'streamgraph.html',
+     for (cond in conditions){
+          # Make streamgraph
+          pp <- 
+               melt %>% 
+               filter(Location == loc & Condition == cond) %>% 
+               streamgraph(key=name, 
+                           value=Abundance, date=Week, scale = 'continuous',
+                           height="300px", width="400px")
+          
+          # Save
+          saveWidget(pp, file=file.path(figs.dir,
+                                        'streamgraphs_filt',
+                                        paste(loc, cond, 'streamgraph.html',
                                               sep = '_')))
-        }
+     }
 }
 
 ```
