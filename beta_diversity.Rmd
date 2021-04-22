@@ -36,26 +36,10 @@ figs.dir <- file.path(scratch.dir, 'figures') # Figures
 
 ```{r}
 # Phyloseq object
-ps <- readRDS(file.path(group.dir, 'plastics.rds'))
+# ps <- readRDS(file.path(group.dir, 'plastics.rds')) # Raw data
+# ps <- readRDS(file.path(group.dir, 'plastics_imputed.rds')) # Raw, imputed data
+ps <- readRDS(file.path(group.dir, 'plastics_imputed_filt.rds')) # Filtered, imputed data
 ps
-```
-
-```{r}
-# Imputed missing data
-# Note: have to manually enter column types, because otherwise will impute a logical value for species based on the first 1000 rows of data
-
-imputed <- 
-     read_csv(file.path(group.dir, 'imputed_plastics_data.csv'),
-              col_types = 'dccdccncnccnccccccccc')
-```
-
-```{r}
-# Check dimensions of imputed data in proportion to input data
-dim(imputed)
-
-# Figure out-- are taxa the same between the two?
-all(imputed$OTU %in% taxa_names(ps))
-all(taxa_names(ps) %in% imputed$OTU)
 ```
 
 # Preprocessing
@@ -71,14 +55,12 @@ sample_data(ps)$Location <- factor(sample_data(ps)$Location,
                                               'Landfill',
                                               'Recycling center'))
 
-sample_data(ps)$Environment <- 
-     ifelse(sample_data(ps)$Location == 'Elizabeth River',
-            yes = 1,
-            no = 0) %>% 
-     factor(labels = c('Waste management facilities', 
-                       'Natural environment'))
-
 sample_data(ps)$Week <- as.numeric(sample_data(ps)$Week)
+
+sample_data(ps)$Week_binned <- cut(sample_data(ps)$Week, 
+                                   breaks = c(0, 4.1, 7.1, 12.1), 
+                                   labels = c('Weeks 1-4', 'Weeks 5-7', 
+                                              'Weeks 8-12'))
 
 sample_data(ps)$Condition <- factor(sample_data(ps)$Condition,
                                    labels = c('No treatment',
@@ -95,20 +77,18 @@ sample_data(ps)$Monomer <-
                        'With styrene'))
 ```
 
-
-## Transform
-
 ```{r}
-# Plan ahead
-# Want to add pseudocount before CLR-transforming; easiest to do this now, while data are still interpreted as counts
+# Reorder plotted levels from default alphabetical
+sample_data(ps)$Monomer <- factor(sample_data(ps)$Monomer,
+                                  levels = c('With styrene', 'Without styrene'))
 
-# Pseudocount of 1 for compatibility with log transform
-otu_table(ps) <- otu_table(ps) + 1 
-
-# Check it worked
-asvtab <- otu_table(ps)@.Data
-min(asvtab)
+sample_data(ps)$Location <- factor(sample_data(ps)$Location,
+                                   levels = c('Elizabeth River',
+                                              'Activated sludge',
+                                              'Landfill',
+                                              'Recycling center'))
 ```
+
 
 ```{r}
 # Transform to relative abundance
@@ -157,19 +137,28 @@ This reduces the number of taxa by `r 100*(1-(2933/ntaxa(ps)))`%.
 
 Choosing the third filter condition for now.  I think a tenth of a percent is a meaningful relative abundance, and I like permitting keeping the threshold at that amount in 1 sample because there's so little replication in this dataset.
 
-# Ordinate
+## Transform
 
-## By ASV
-
-### PCA
-
-#### CLR transform input
+#### Apply filter
 
 ```{r}
-# Pseudocount has already been added, pre-transformation, so no need to do here
+# If using raw data, subset to taxa preserved in filtered objects, above
+```
 
+#### CLR
+
+```{r}
+# Add pseudocount of 1 for compatibility with log transform
+otu_table(ps) <- otu_table(ps) + 1 
+
+# Check it worked
+asvtab <- otu_table(ps)@.Data
+min(asvtab)
+```
+
+```{r}
 # Get ASV table
-asvtab <- otu_table(ps.ra.filt)@.Data
+asvtab <- otu_table(ps)@.Data
 
 # Transform
 asvtab.clr <- clr(asvtab)
@@ -182,6 +171,12 @@ ps.clr <- phyloseq(otu_table(asvtab.clr, taxa_are_rows = FALSE),
                    sample_data(sample_data(ps)),
                    tax_table(tax_table(ps)))
 ```
+
+# Ordinate
+
+## By ASV
+
+### PCA
 
 #### Run
 
@@ -216,29 +211,17 @@ ve.pc1 <- as.character(100*round(eigs[1] / sum(eigs), 3))
 ve.pc2 <- as.character(100*round(eigs[2] / sum(eigs), 3))
 ```
 
-
 ```{r}
 # Plot by location
-# pca.plot <- 
-#      ggplot(pca.df, aes(PC1, PC2, color = Environment)) +
-#      geom_point() +
-#      coord_equal() +
-#      xlim(-limit, limit) + ylim(-limit, limit) + 
-#      labs(x = paste0(' PC1 (', ve.pc1, '%)'),
-#           y = paste0(' PC1 (', ve.pc2, '%)'),
-#           color = 'Sample source') + 
-#      scale_color_manual(values = c('gray60', 'skyblue3')) +
-#      theme_bw()
-
 a <-
      ggplot(pca.df, aes(PC1, PC2, color = Location)) +
-     geom_point() +
+     geom_point(alpha = 0.5) +
      coord_equal() +
      xlim(-limit, limit) + ylim(-limit, limit) +
      labs(x = paste0(' Principal Component 1 (', ve.pc1, '%)'),
           y = paste0(' Principal Component 2 (', ve.pc2, '%)'),
           title = 'Sample source') +
-     scale_color_manual(values = c('gray60', 'skyblue3', 'gray40', 'gray80')) +
+     scale_color_manual(values = c('skyblue3', 'gray40', 'gray60', 'gray80')) +
      theme(legend.position = c(0.8, 0.8),
            plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
            panel.border = element_blank(), 
@@ -259,23 +242,23 @@ a
 ```{r}
 # Plot by timecourse
 b <- 
-    ggplot(pca.df, aes(PC1, PC2, color = Week)) +
-    geom_point() +
-    coord_equal() +
-    xlim(-limit, limit) + ylim(-limit, limit) + 
-    labs(x = paste0(' PC 1 (', ve.pc1, '%)'),
-         y = paste0(' PC 2 (', ve.pc2, '%)'),
-         title = 'Bioreactor week') + 
-    scale_color_distiller(palette = 'Greys', direction = 1) +
-    theme(legend.position = c(0.8, 0.8),
-          plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-          axis.title.y = element_blank(),
+     ggplot(pca.df, aes(PC1, PC2, color = Week_binned)) +
+     geom_point(alpha = 0.5) +
+     coord_equal() +
+     xlim(-limit, limit) + ylim(-limit, limit) + 
+     labs(x = paste0(' PC 1 (', ve.pc1, '%)'),
+          y = '  ', # Need empty space here to keep plots same size
+          title = 'Bioreactor week') + 
+     # scale_color_distiller(palette = 'Greys', direction = 1) +
+     scale_color_manual(values = brewer.pal(3, 'Greens')[3:1]) +
+     theme(legend.position = c(0.8, 0.8),
+           plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
            panel.border = element_blank(), 
            panel.grid.major = element_blank(), 
            panel.grid.minor = element_blank(), 
            axis.line = element_line(colour = "black", 
                                     size = rel(1)), 
-          legend.title = element_blank(), 
+           legend.title = element_blank(), 
            legend.key = element_blank(), 
            panel.background = element_rect(fill = "white", 
                                            colour = NA),
@@ -290,16 +273,15 @@ b
 # Plot by treatment
 c <- 
      ggplot(pca.df, aes(PC1, PC2, color = Monomer)) +
-     geom_point() +
+     geom_point(alpha = 0.5) +
      coord_equal() +
      xlim(-limit, limit) + ylim(-limit, limit) + 
      labs(x = paste0(' PC 1 (', ve.pc1, '%)'),
-          y = paste0(' PC 2 (', ve.pc2, '%)'),
+          y = '  ', # Need empty space here to keep plots same size
           title = 'Treatment condition') + 
-     scale_color_manual(values = c('gray60', 'red3')) +
+     scale_color_manual(values = c('red3', 'gray60')) +
      theme(legend.position = c(0.8, 0.8),
            plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-           axis.title.y = element_blank(), 
            panel.border = element_blank(), 
            panel.grid.major = element_blank(), 
            panel.grid.minor = element_blank(), 
@@ -344,7 +326,7 @@ plot_grid(
   rel_heights = c(0.1, 1)
 )
 
-ggsave(file.path(figs.dir, 'Beta diversity.pdf'),
+ggsave(file.path(figs.dir, 'Beta diversity_imputed_filt.pdf'),
                  width = 10, height = 4)
 ```
 
