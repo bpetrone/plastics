@@ -21,6 +21,7 @@ library(microbiomeMarker)
 # Define Paths
 ```{r}
 plastics.rds = "/sharedspace/PlasticPeople/plastics.rds"
+imputed.rds = "/sharedspace/PlasticPeople/plastics_imputed.rds"
 ```
 
 # Check Phyloseq RDS
@@ -91,7 +92,7 @@ Now, I want to compare media with and without styrene, accounting for the fact t
 ```{r}
 RCAS.endpoint.ps <- endpoint.ps %>%
      subset_samples(Location %in% c("RC", "AS"))
-print(RCAS.ps)
+print(RCAS.endpoint.ps)
 ```
 
 ```{r}
@@ -156,5 +157,72 @@ clean.RCAS.lef <- lefse(RCAS.clean.ps,
                         lda_cutoff = 3,
                         correct = "1")
 plot_ef_bar(clean.RCAS.lef) +
+     scale_fill_manual(values = c("has_monomer" = "blue", "no_monomer" = "grey"))
+```
+
+##Repeat Analysis for Imputed Data
+
+Note presence of styrene monomer
+```{r}
+imputed.metadata <- imputed.ps %>%
+     sample_data() %>%
+     as.data.frame()
+
+conditions <- imputed.metadata$Condition
+monomer <- ifelse(conditions %in% c("PSS", "S"), "has_monomer", "no_monomer")
+
+sample_data(imputed.ps)$monomer_presence <- monomer
+```
+
+```{r}
+sample_variables(imputed.ps)
+```
+
+Filter to weeks 7-12 to hone in on the end of the study where we see the differences in alpha diversity
+```{r}
+imputed.endpoint.ps <- imputed.ps %>%
+     subset_samples(Week %in% c(7,8,9,10,11,12))
+print(imputed.endpoint.ps)
+```
+
+Filter for just ASVs which were identifiable down to the genus level
+```{r}
+imputed.good.genus.ps <- imputed.endpoint.ps %>%
+     subset_taxa(!is.na(Genus))
+print(imputed.good.genus.ps)
+```
+
+Simplify LEfSe output
+```{r}
+#Combine the genus and species identifications
+imputed.taxa <- tax_table(imputed.good.genus.ps) %>%
+     as.data.frame()
+imputed.taxa$Genus_new <- paste(imputed.taxa$Genus, imputed.taxa$Species, sep = "_")
+
+#Get rid of everything but the genus/species combo
+imputed.new_taxa <- imputed.taxa %>%
+     select(Genus_new)
+colnames(imputed.new_taxa)[1] <- "Genus"
+
+#Replace the taxa table in the phyloseq object with the new genus/species only table
+clean.imputed.ps <- imputed.good.genus.ps
+tax_table(clean.imputed.ps) <- as.matrix(imputed.new_taxa)
+```
+
+We want just the RC and AS locations for comparison
+```{r}
+#Filter for locations of interest
+RCAS.imputed.ps <- clean.imputed.ps %>%
+     subset_samples(Location %in% c("RC", "AS"))
+print(RCAS.imputed.ps)
+```
+
+Perform lefse analysis and plotting
+```{r}
+RCAS.imputed.lef <- lefse(RCAS.imputed.ps,
+                        class = "monomer_presence",
+                        lda_cutoff = 3,
+                        correct = "1")
+plot_ef_bar(RCAS.imputed.lef) +
      scale_fill_manual(values = c("has_monomer" = "blue", "no_monomer" = "grey"))
 ```
