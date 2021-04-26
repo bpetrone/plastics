@@ -35,6 +35,11 @@ print(plastics.ps)
 sample_variables(plastics.ps)
 ```
 
+```{r}
+imputed.ps = read_rds(imputed.rds)
+print(imputed.ps)
+```
+
 ## Styrene Monomer
 We noticed from the alpha diversity analysis that in the RC and AS locations, the growth conditions with styrene monomer tracked together separately from the other two growth conditions. Thus, we want to use LEfSe to see if there are differences in the taxa associated with styrene monomer.
 
@@ -105,7 +110,7 @@ plot_ef_bar(RCAS.lef)
 ```{r}
 RCAS.goodgenus.ps <- good.genus.ps %>%
      subset_samples(Location %in% c("RC", "AS"))
-print(RCAS.goodspecies.ps)
+print(RCAS.goodgenus.ps)
 ```
 
 ```{r}
